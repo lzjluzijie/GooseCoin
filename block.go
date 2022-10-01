@@ -2,18 +2,25 @@ package goosecoin
 
 import (
 	"bytes"
+	"crypto/ed25519"
 	"crypto/sha256"
+	"encoding/hex"
 	"time"
 )
 
-type Hash [32]byte
+type Hash []byte
 
 type Block struct {
-	Hash      Hash
-	Height    uint64
-	PrevHash  Hash
-	TimeStamp time.Time
-	Data      []Message
+	Hash        Hash   `json:"-"`
+	HexHash     string `json:"Hash"`
+	Height      uint64
+	PrevHash    Hash   `json:"-"`
+	HexPrevHash string `json:"PrevHash"`
+	TimeStamp   time.Time
+	Data        []Message
+
+	Validator ed25519.PublicKey
+	Signature []byte
 
 	prev *Block
 }
@@ -26,28 +33,32 @@ func (block *Block) ComputeHash() Hash {
 	for _, message := range block.Data {
 		data.Write(message)
 	}
-	return sha256.Sum256(data.Bytes())
+	hash := sha256.Sum256(data.Bytes())
+	return hash[:]
 }
 
-func NewBlock(prev *Block, Data []Message) *Block {
+func NewBlock(prev *Block, data []Message) *Block {
 	block := &Block{
-		Height:    prev.Height + 1,
-		PrevHash:  prev.Hash,
-		TimeStamp: time.Now(),
-		prev:      prev,
+		Height:      prev.Height + 1,
+		PrevHash:    prev.Hash,
+		TimeStamp:   time.Now(),
+		Data:        data,
+		prev:        prev,
+		HexPrevHash: hex.EncodeToString(prev.Hash[:]),
 	}
 
 	hash := block.ComputeHash()
 	block.Hash = hash
+	block.HexHash = hex.EncodeToString(hash[:])
 
 	return block
 }
 
-func Genesis() *Block {
+func Genesis(t time.Time) *Block {
 	block := &Block{
 		Height:    0,
-		PrevHash:  [...]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
-		TimeStamp: time.Now(),
+		PrevHash:  []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+		TimeStamp: t,
 		Data:      make([]Message, 0),
 	}
 
@@ -56,3 +67,5 @@ func Genesis() *Block {
 
 	return block
 }
+
+var genesis = Genesis(time.Unix(0, 0))
