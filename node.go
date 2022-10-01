@@ -1,6 +1,9 @@
 package goosecoin
 
-import "crypto/ed25519"
+import (
+	"crypto/ed25519"
+	"reflect"
+)
 
 type Node struct {
 	publicKey  ed25519.PublicKey
@@ -26,6 +29,17 @@ func NewNode() *Node {
 		Blocks:     blocks,
 		Messages:   make([]Message, 0),
 	}
+}
+
+func (n *Node) VerifyBlock(block *Block) bool {
+	if !reflect.DeepEqual(block.ComputeHash(), block.Hash) {
+		return false
+	}
+
+	if !ed25519.Verify(block.Validator, block.Hash, block.Signature) {
+		return false
+	}
+	return true
 }
 
 func (n *Node) AddMessage(m Message) {

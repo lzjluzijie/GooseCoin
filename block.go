@@ -11,11 +11,11 @@ import (
 type Hash []byte
 
 type Block struct {
-	Hash        Hash   `json:"-"`
-	HexHash     string `json:"Hash"`
+	Hash        Hash
+	HexHash     string
 	Height      uint64
-	PrevHash    Hash   `json:"-"`
-	HexPrevHash string `json:"PrevHash"`
+	PrevHash    Hash
+	HexPrevHash string
 	TimeStamp   time.Time
 	Data        []Message
 
