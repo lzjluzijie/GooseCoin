@@ -7,19 +7,21 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	goosecoin "github.com/lzjluzijie/GooseCoin"
 )
 
-func main() {
-	addr := os.Args[1]
+type Config struct {
+	Addr  string
+	Peers []string
+}
+
+func runWithConfig(config Config) {
 	node := goosecoin.NewNode()
-	peers := make([]string, 0)
-	peers = append(peers, "http://localhost:8000")
 
 	r := gin.Default()
-
 	r.GET("/head", func(c *gin.Context) {
 		c.JSON(http.StatusOK, node.Head)
 	})
@@ -38,7 +40,7 @@ func main() {
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
-		for _, peer := range peers {
+		for _, peer := range config.Peers {
 			_, err := http.Post(peer+"/newblock", "application/json", bytes.NewReader(data))
 			if err != nil {
 				log.Println(err.Error())
@@ -82,8 +84,24 @@ func main() {
 		c.String(http.StatusOK, "OK")
 	})
 
-	err := http.ListenAndServe(addr, r)
+	err := http.ListenAndServe(config.Addr, r)
 	if err != nil {
 		panic(err)
 	}
+}
+
+func main() {
+	for _, configPath := range os.Args[1:] {
+		configData, err := os.ReadFile(configPath)
+		if err != nil {
+			panic(err)
+		}
+		var config Config
+		err = json.Unmarshal(configData, &config)
+		if err != nil {
+			panic(err)
+		}
+		go runWithConfig(config)
+	}
+	time.Sleep(99999999 * time.Second)
 }

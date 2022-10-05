@@ -1,0 +1,8 @@
+{
+    "Addr": "localhost:8001",
+    "Peers": [
+        "localhost:8000",
+        "localhost:8002",
+        "localhost:8003"
+    ]
+}
