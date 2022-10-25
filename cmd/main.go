@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/ed25519"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -14,14 +15,33 @@ import (
 )
 
 type Config struct {
-	Addr  string
-	Peers []string
+	Addr       string
+	Peers      []string
+	PublicKey  ed25519.PublicKey
+	PrivateKey ed25519.PrivateKey
+	Validators []ed25519.PublicKey
 }
 
 func runWithConfig(config Config) {
-	node := goosecoin.NewNode()
+	// node := goosecoin.NewNode()
+	node := goosecoin.NewNodeWithKey(config.PublicKey, config.PrivateKey)
+	node.Validators = config.Validators
+
+	// randaoSync := func() {
+	// 	seed := make([]byte, 32)
+	// 	_, err := rand.Read(seed)
+	// 	if err != nil {
+	// 		panic(err)
+	// 	}
+	// 	hash := sha256.Sum256(seed)
+
+	// }
 
 	r := gin.Default()
+	r.GET("/node", func(c *gin.Context) {
+		c.JSON(http.StatusOK, node)
+	})
+
 	r.GET("/head", func(c *gin.Context) {
 		c.JSON(http.StatusOK, node.Head)
 	})
@@ -56,7 +76,11 @@ func runWithConfig(config Config) {
 
 	r.POST("/newblock", func(c *gin.Context) {
 		var block *goosecoin.Block
-		c.BindJSON(&block)
+		err := c.BindJSON(&block)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 
 		if !node.VerifyBlock(block) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid block"})
@@ -82,6 +106,34 @@ func runWithConfig(config Config) {
 		node.Blocks = blocks
 		node.Head = blocks[len(blocks)-1]
 		c.String(http.StatusOK, "OK")
+	})
+
+	randao := goosecoin.NewRandao(config.Validators)
+	r.POST("/randao/hash", func(c *gin.Context) {
+		var req goosecoin.HashRequest
+		err := c.BindJSON(&req)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		err = randao.AddHash(req)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+	})
+	r.POST("/randao/seed", func(c *gin.Context) {
+		var req goosecoin.SeedRequest
+		err := c.BindJSON(&req)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		err = randao.AddSeed(req)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 	})
 
 	err := http.ListenAndServe(config.Addr, r)

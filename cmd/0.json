@@ -4,5 +4,13 @@
         "localhost:8001",
         "localhost:8002",
         "localhost:8003"
+    ],
+    "PublicKey": "MMmFIJMOEwfhi+GY7jEpTdmKsmgcElk9XBOOTDmiXqw=",
+    "PrivateKey": "n0krOdV5gSirgyx4Fd9LewQGbpex7O0ZtW+F3tayXRcwyYUgkw4TB+GL4ZjuMSlN2YqyaBwSWT1cE45MOaJerA==",
+    "Validators": [
+        "MMmFIJMOEwfhi+GY7jEpTdmKsmgcElk9XBOOTDmiXqw=",
+        "MpVHRvyL718yyWMBsRfbnmq2VmFOILfdfldmJzK28WE=",
+        "y0FSbCIzuvjc09Ye511CUES/qlITqSMovmcx3/iN/H0=",
+        "8X0lHzX6WdB4AJTHiX+eTt1nckN6nEBGbKYuFOJmDeo="
     ]
 }

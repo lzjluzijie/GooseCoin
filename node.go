@@ -6,12 +6,14 @@ import (
 )
 
 type Node struct {
-	publicKey  ed25519.PublicKey
-	privateKey ed25519.PrivateKey
+	PublicKey  ed25519.PublicKey
+	PrivateKey ed25519.PrivateKey
 
 	Head     *Block
 	Blocks   []*Block
 	Messages []Message
+
+	Validators []ed25519.PublicKey
 }
 
 func NewNode() *Node {
@@ -19,12 +21,15 @@ func NewNode() *Node {
 	if err != nil {
 		panic(err)
 	}
+	return NewNodeWithKey(publicKey, privateKey)
+}
 
+func NewNodeWithKey(publicKey ed25519.PublicKey, privateKey ed25519.PrivateKey) *Node {
 	blocks := make([]*Block, 0)
 	blocks = append(blocks, genesis)
 	return &Node{
-		publicKey:  publicKey,
-		privateKey: privateKey,
+		PublicKey:  publicKey,
+		PrivateKey: privateKey,
 		Head:       genesis,
 		Blocks:     blocks,
 		Messages:   make([]Message, 0),
@@ -48,8 +53,8 @@ func (n *Node) AddMessage(m Message) {
 
 func (n *Node) Mine() {
 	block := NewBlock(n.Head, n.Messages)
-	block.Validator = n.publicKey
-	block.Signature = ed25519.Sign(n.privateKey, block.Hash[:])
+	block.Validator = n.PublicKey
+	block.Signature = ed25519.Sign(n.PrivateKey, block.Hash[:])
 
 	n.Head = block
 	n.Blocks = append(n.Blocks, block)
