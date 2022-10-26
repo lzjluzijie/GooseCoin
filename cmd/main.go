@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"log"
+	"net/http"
 	"os"
 	"time"
 
@@ -14,6 +15,9 @@ type Config struct {
 }
 
 func main() {
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+	http.DefaultClient.Timeout = time.Second
+
 	configData, err := os.ReadFile(os.Args[1])
 	if err != nil {
 		panic(err)
@@ -31,8 +35,7 @@ func main() {
 		servers[i] = server
 	}
 	for _, server := range servers {
-		log.Println(server)
-		server.Randao.SendHash()
+		server.Randaos[goosecoin.RandaoID(1)].SendHash()
 	}
 	time.Sleep(99999999 * time.Second)
 }

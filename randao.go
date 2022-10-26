@@ -5,6 +5,7 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"io"
@@ -13,12 +14,14 @@ import (
 )
 
 type HashRequest struct {
+	ID        string
 	Validator ed25519.PublicKey
 	Hash      []byte
 	Signature []byte
 }
 
 type SeedRequest struct {
+	ID        string
 	Validator ed25519.PublicKey
 	Seed      []byte
 	Signature []byte
@@ -37,6 +40,9 @@ type Randao struct {
 	seed []byte
 	hash []byte
 
+	ID       string
+	OnFinish func(result []byte)
+
 	Status     RandaoStatus
 	Validators [][32]byte
 	Hashs      map[[32]byte][]byte
@@ -44,7 +50,7 @@ type Randao struct {
 	Result     []byte
 }
 
-func (s *Server) NewRandao() *Randao {
+func (s *Server) NewRandao(id string, onFinish func(result []byte)) *Randao {
 	keys := s.Validators
 	validators := make([][32]byte, len(keys))
 	for i, k := range keys {
@@ -61,9 +67,13 @@ func (s *Server) NewRandao() *Randao {
 	}
 	hash := sha256.Sum256(seed)
 	r := &Randao{
-		s:          s,
-		seed:       seed,
-		hash:       hash[:],
+		s:    s,
+		seed: seed,
+		hash: hash[:],
+
+		ID:       id,
+		OnFinish: onFinish,
+
 		Status:     RandaoStatusHash,
 		Validators: validators,
 		Hashs:      make(map[[32]byte][]byte),
@@ -78,18 +88,20 @@ func (s *Server) NewRandao() *Randao {
 
 func (r *Randao) SendHash() {
 	signature := ed25519.Sign(r.s.PrivateKey, r.hash)
+	req := HashRequest{
+		ID:        r.ID,
+		Validator: r.s.PublicKey,
+		Hash:      r.hash[:],
+		Signature: signature,
+	}
+	data, err := json.Marshal(req)
+	if err != nil {
+		panic(err)
+	}
 	for _, peer := range r.s.Config.Peers {
-		req := HashRequest{
-			Validator: r.s.PublicKey,
-			Hash:      r.hash[:],
-			Signature: signature,
-		}
-		data, err := json.Marshal(req)
-		if err != nil {
-			panic(err)
-		}
 		resp, err := http.Post(peer+"/randao/hash", "application/json", bytes.NewReader(data))
 		if err != nil {
+			log.Println(base64.StdEncoding.EncodeToString(r.s.PublicKey), peer)
 			panic(err)
 		}
 		if resp.StatusCode != http.StatusOK {
@@ -100,20 +112,22 @@ func (r *Randao) SendHash() {
 			panic(string(data))
 		}
 	}
+	log.Println("send hash ok", base64.StdEncoding.EncodeToString(r.s.PublicKey))
 }
 
 func (r *Randao) SendSeed() {
 	signature := ed25519.Sign(r.s.PrivateKey, r.seed)
+	req := SeedRequest{
+		ID:        r.ID,
+		Validator: r.s.PublicKey,
+		Seed:      r.seed,
+		Signature: signature,
+	}
+	data, err := json.Marshal(req)
+	if err != nil {
+		panic(err)
+	}
 	for _, peer := range r.s.Config.Peers {
-		req := SeedRequest{
-			Validator: r.s.PublicKey,
-			Seed:      r.seed,
-			Signature: signature,
-		}
-		data, err := json.Marshal(req)
-		if err != nil {
-			panic(err)
-		}
 		resp, err := http.Post(peer+"/randao/seed", "application/json", bytes.NewReader(data))
 		if err != nil {
 			panic(err)
@@ -126,6 +140,7 @@ func (r *Randao) SendSeed() {
 			panic(string(data))
 		}
 	}
+	log.Println("send seed ok", base64.StdEncoding.EncodeToString(r.s.PublicKey))
 }
 
 func (r *Randao) AddHash(req HashRequest) error {
@@ -140,7 +155,7 @@ func (r *Randao) AddHash(req HashRequest) error {
 	r.Hashs[*v] = req.Hash
 	if len(r.Hashs) == len(r.Validators) {
 		r.Status = RandaoStatusSeed
-		r.SendSeed()
+		go r.SendSeed()
 	}
 	return nil
 }
@@ -158,7 +173,10 @@ func (r *Randao) AddSeed(req SeedRequest) error {
 	if len(r.Seeds) == len(r.Validators) {
 		r.Status = RandaoStatusFinished
 		r.Result = r.result()
-		log.Println(r.Result)
+		// log.Println(r.Result)
+		if r.OnFinish != nil {
+			go r.OnFinish(r.Result)
+		}
 	}
 	return nil
 }

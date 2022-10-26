@@ -3,10 +3,13 @@ package goosecoin
 import (
 	"bytes"
 	"crypto/ed25519"
+	"encoding/base64"
 	"encoding/json"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -22,7 +25,8 @@ type ServerConfig struct {
 type Server struct {
 	Config ServerConfig
 	*Node
-	Randao *Randao
+	Randaos       map[string]*Randao
+	NextValidator ed25519.PublicKey
 
 	r *gin.Engine
 }
@@ -33,11 +37,12 @@ func NewServer(config ServerConfig) *Server {
 
 	r := gin.Default()
 	s := &Server{
-		Config: config,
-		Node:   node,
-		r:      r,
+		Config:  config,
+		Node:    node,
+		Randaos: map[string]*Randao{},
+		r:       r,
 	}
-	s.Randao = s.NewRandao()
+	s.Randaos[RandaoID(1)] = s.NewRandao(RandaoID(1), s.OnRandaoFinish)
 
 	r.GET("/node", func(c *gin.Context) {
 		c.JSON(http.StatusOK, node)
@@ -56,17 +61,7 @@ func NewServer(config ServerConfig) *Server {
 	})
 
 	r.GET("/mine", func(c *gin.Context) {
-		node.Mine()
-		data, err := json.Marshal(node.Head)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		}
-		for _, peer := range config.Peers {
-			_, err := http.Post(peer+"/newblock", "application/json", bytes.NewReader(data))
-			if err != nil {
-				log.Println(err.Error())
-			}
-		}
+		s.Mine()
 		c.JSON(http.StatusOK, node.Head)
 	})
 
@@ -91,8 +86,18 @@ func NewServer(config ServerConfig) *Server {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid block height"})
 			return
 		}
-		node.Blocks = append(node.Blocks, block)
-		node.Head = block
+		time.Sleep(time.Second / 10)
+		if s.Randaos[RandaoID(block.Height)].Status != RandaoStatusFinished {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "randao not finished"})
+			return
+		}
+		if !bytes.Equal(block.Validator, s.NextValidator) {
+			log.Printf("%s   %s\n", base64.StdEncoding.EncodeToString(block.Validator), base64.StdEncoding.EncodeToString(s.NextValidator))
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid validator"})
+			return
+		}
+
+		node.AddBlock(block)
 		c.String(http.StatusOK, "OK")
 	})
 
@@ -116,7 +121,11 @@ func NewServer(config ServerConfig) *Server {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		err = s.Randao.AddHash(req)
+		if s.Randaos[req.ID] == nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid randao id"})
+			return
+		}
+		err = s.Randaos[req.ID].AddHash(req)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -129,7 +138,11 @@ func NewServer(config ServerConfig) *Server {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		err = s.Randao.AddSeed(req)
+		if s.Randaos[req.ID] == nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid randao id"})
+			return
+		}
+		err = s.Randaos[req.ID].AddSeed(req)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -143,5 +156,42 @@ func (s *Server) Run() {
 	err := http.ListenAndServe(s.Config.Addr, s.r)
 	if err != nil {
 		panic(err)
+	}
+}
+
+func (s *Server) Mine() {
+	block := s.Node.Mine()
+	data, err := json.Marshal(block)
+	if err != nil {
+		panic(err)
+	}
+	for _, peer := range s.Config.Peers {
+		resp, err := http.Post(peer+"/newblock", "application/json", bytes.NewReader(data))
+		if err != nil {
+			panic(err)
+		}
+		if resp.StatusCode != http.StatusOK {
+			data, err := io.ReadAll(resp.Body)
+			if err != nil {
+				panic(err)
+			}
+			panic(string(data))
+		}
+	}
+}
+
+func (s *Server) OnRandaoFinish(result []byte) {
+	i := Mod(result, int64(len(s.Config.Validators)))
+	log.Println(i)
+	s.NextValidator = s.Config.Validators[i]
+	next := RandaoID(s.Head.Height + 2)
+	s.Randaos[next] = s.NewRandao(next, s.OnRandaoFinish)
+	log.Println(next)
+	go func() {
+		time.Sleep(time.Second * 12)
+		s.Randaos[next].SendHash()
+	}()
+	if bytes.Equal(s.NextValidator, s.Config.PublicKey) {
+		s.Mine()
 	}
 }

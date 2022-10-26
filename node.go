@@ -51,12 +51,20 @@ func (n *Node) AddMessage(m Message) {
 	n.Messages = append(n.Messages, m)
 }
 
-func (n *Node) Mine() {
-	block := NewBlock(n.Head, n.Messages)
-	block.Validator = n.PublicKey
-	block.Signature = ed25519.Sign(n.PrivateKey, block.Hash[:])
+func (n *Node) AddBlock(block *Block) {
+	if !n.VerifyBlock(block) {
+		panic("invalid block")
+	}
 
 	n.Head = block
 	n.Blocks = append(n.Blocks, block)
 	n.Messages = make([]Message, 0)
+}
+
+func (n *Node) Mine() *Block {
+	block := NewBlock(n.Head, n.Messages)
+	block.Validator = n.PublicKey
+	block.Signature = ed25519.Sign(n.PrivateKey, block.Hash[:])
+	n.AddBlock(block)
+	return block
 }
