@@ -3,7 +3,6 @@ package goosecoin
 import (
 	"bytes"
 	"crypto/ed25519"
-	"encoding/base64"
 	"encoding/json"
 	"io"
 	"log"
@@ -19,21 +18,19 @@ type ServerConfig struct {
 	Peers      []string
 	PublicKey  ed25519.PublicKey
 	PrivateKey ed25519.PrivateKey
-	Validators []ed25519.PublicKey
 }
 
 type Server struct {
 	Config ServerConfig
 	*Node
 	Randaos       map[string]*Randao
-	NextValidator ed25519.PublicKey
+	NextValidator Validator
 
 	r *gin.Engine
 }
 
-func NewServer(config ServerConfig) *Server {
-	node := NewNodeWithKey(config.PublicKey, config.PrivateKey)
-	node.Validators = config.Validators
+func (n *Network) NewServer(config ServerConfig) *Server {
+	node := NewNodeWithKey(config.PublicKey, config.PrivateKey, n)
 
 	r := gin.Default()
 	s := &Server{
@@ -91,8 +88,7 @@ func NewServer(config ServerConfig) *Server {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "randao not finished"})
 			return
 		}
-		if !bytes.Equal(block.Validator, s.NextValidator) {
-			log.Printf("%s   %s\n", base64.StdEncoding.EncodeToString(block.Validator), base64.StdEncoding.EncodeToString(s.NextValidator))
+		if !bytes.Equal(block.Validator.PublicKey, s.NextValidator.PublicKey) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid validator"})
 			return
 		}
@@ -181,9 +177,9 @@ func (s *Server) Mine() {
 }
 
 func (s *Server) OnRandaoFinish(result []byte) {
-	i := Mod(result, int64(len(s.Config.Validators)))
+	i := Mod(result, int64(len(s.network.Validators)))
 	log.Println(i)
-	s.NextValidator = s.Config.Validators[i]
+	s.NextValidator = s.network.Validators[i]
 	next := RandaoID(s.Head.Height + 2)
 	s.Randaos[next] = s.NewRandao(next, s.OnRandaoFinish)
 	log.Println(next)
@@ -191,7 +187,7 @@ func (s *Server) OnRandaoFinish(result []byte) {
 		time.Sleep(time.Second * 12)
 		s.Randaos[next].SendHash()
 	}()
-	if bytes.Equal(s.NextValidator, s.Config.PublicKey) {
+	if bytes.Equal(s.NextValidator.PublicKey, s.Config.PublicKey) {
 		s.Mine()
 	}
 }

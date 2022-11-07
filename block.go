@@ -2,7 +2,6 @@ package goosecoin
 
 import (
 	"bytes"
-	"crypto/ed25519"
 	"crypto/sha256"
 	"encoding/hex"
 	"time"
@@ -19,7 +18,7 @@ type Block struct {
 	TimeStamp   time.Time
 	Data        []Message
 
-	Validator ed25519.PublicKey
+	Validator Validator
 	Signature []byte
 
 	prev *Block

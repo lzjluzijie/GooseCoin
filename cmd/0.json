@@ -1,4 +1,18 @@
 {
+    "Validators": [
+        {
+            "PublicKey": "MMmFIJMOEwfhi+GY7jEpTdmKsmgcElk9XBOOTDmiXqw="
+        },
+        {
+            "PublicKey": "MpVHRvyL718yyWMBsRfbnmq2VmFOILfdfldmJzK28WE="
+        },
+        {
+            "PublicKey": "y0FSbCIzuvjc09Ye511CUES/qlITqSMovmcx3/iN/H0="
+        },
+        {
+            "PublicKey": "8X0lHzX6WdB4AJTHiX+eTt1nckN6nEBGbKYuFOJmDeo="
+        }
+    ],
     "Nodes": [
         {
             "Addr": "localhost:8000",
@@ -8,13 +22,7 @@
                 "http://localhost:8003"
             ],
             "PublicKey": "MMmFIJMOEwfhi+GY7jEpTdmKsmgcElk9XBOOTDmiXqw=",
-            "PrivateKey": "n0krOdV5gSirgyx4Fd9LewQGbpex7O0ZtW+F3tayXRcwyYUgkw4TB+GL4ZjuMSlN2YqyaBwSWT1cE45MOaJerA==",
-            "Validators": [
-                "MMmFIJMOEwfhi+GY7jEpTdmKsmgcElk9XBOOTDmiXqw=",
-                "MpVHRvyL718yyWMBsRfbnmq2VmFOILfdfldmJzK28WE=",
-                "y0FSbCIzuvjc09Ye511CUES/qlITqSMovmcx3/iN/H0=",
-                "8X0lHzX6WdB4AJTHiX+eTt1nckN6nEBGbKYuFOJmDeo="
-            ]
+            "PrivateKey": "n0krOdV5gSirgyx4Fd9LewQGbpex7O0ZtW+F3tayXRcwyYUgkw4TB+GL4ZjuMSlN2YqyaBwSWT1cE45MOaJerA=="
         },
         {
             "Addr": "localhost:8001",
@@ -24,13 +32,7 @@
                 "http://localhost:8003"
             ],
             "PublicKey": "MpVHRvyL718yyWMBsRfbnmq2VmFOILfdfldmJzK28WE=",
-            "PrivateKey": "IuSl0R6op8QPHxkCDDTUMfCOjcgQ8mFSoM6YIVqnk2EylUdG/IvvXzLJYwGxF9uearZWYU4gt91+V2YnMrbxYQ==",
-            "Validators": [
-                "MMmFIJMOEwfhi+GY7jEpTdmKsmgcElk9XBOOTDmiXqw=",
-                "MpVHRvyL718yyWMBsRfbnmq2VmFOILfdfldmJzK28WE=",
-                "y0FSbCIzuvjc09Ye511CUES/qlITqSMovmcx3/iN/H0=",
-                "8X0lHzX6WdB4AJTHiX+eTt1nckN6nEBGbKYuFOJmDeo="
-            ]
+            "PrivateKey": "IuSl0R6op8QPHxkCDDTUMfCOjcgQ8mFSoM6YIVqnk2EylUdG/IvvXzLJYwGxF9uearZWYU4gt91+V2YnMrbxYQ=="
         },
         {
             "Addr": "localhost:8002",
@@ -40,13 +42,7 @@
                 "http://localhost:8003"
             ],
             "PublicKey": "y0FSbCIzuvjc09Ye511CUES/qlITqSMovmcx3/iN/H0=",
-            "PrivateKey": "vpt0CBsAcuKM7ug2PAzbw1u1bGuyxkfm46wB+VCju2nLQVJsIjO6+NzT1h7nXUJQRL+qUhOpIyi+ZzHf+I38fQ==",
-            "Validators": [
-                "MMmFIJMOEwfhi+GY7jEpTdmKsmgcElk9XBOOTDmiXqw=",
-                "MpVHRvyL718yyWMBsRfbnmq2VmFOILfdfldmJzK28WE=",
-                "y0FSbCIzuvjc09Ye511CUES/qlITqSMovmcx3/iN/H0=",
-                "8X0lHzX6WdB4AJTHiX+eTt1nckN6nEBGbKYuFOJmDeo="
-            ]
+            "PrivateKey": "vpt0CBsAcuKM7ug2PAzbw1u1bGuyxkfm46wB+VCju2nLQVJsIjO6+NzT1h7nXUJQRL+qUhOpIyi+ZzHf+I38fQ=="
         },
         {
             "Addr": "localhost:8003",
@@ -56,13 +52,7 @@
                 "http://localhost:8002"
             ],
             "PublicKey": "8X0lHzX6WdB4AJTHiX+eTt1nckN6nEBGbKYuFOJmDeo=",
-            "PrivateKey": "go4vUIrLtF26OJ/O+voRCXu8t9cLypI+rxF3y8kC2IPxfSUfNfpZ0HgAlMeJf55O3WdyQ3qcQEZspi4U4mYN6g==",
-            "Validators": [
-                "MMmFIJMOEwfhi+GY7jEpTdmKsmgcElk9XBOOTDmiXqw=",
-                "MpVHRvyL718yyWMBsRfbnmq2VmFOILfdfldmJzK28WE=",
-                "y0FSbCIzuvjc09Ye511CUES/qlITqSMovmcx3/iN/H0=",
-                "8X0lHzX6WdB4AJTHiX+eTt1nckN6nEBGbKYuFOJmDeo="
-            ]
+            "PrivateKey": "go4vUIrLtF26OJ/O+voRCXu8t9cLypI+rxF3y8kC2IPxfSUfNfpZ0HgAlMeJf55O3WdyQ3qcQEZspi4U4mYN6g=="
         }
     ]
 }

@@ -11,7 +11,8 @@ import (
 )
 
 type Config struct {
-	Nodes []goosecoin.ServerConfig
+	Validators []goosecoin.Validator
+	Nodes      []goosecoin.ServerConfig
 }
 
 func main() {
@@ -28,9 +29,13 @@ func main() {
 		panic(err)
 	}
 
+	network := &goosecoin.Network{
+		Validators: config.Validators,
+	}
+
 	servers := make([]*goosecoin.Server, len(config.Nodes))
 	for i, config := range config.Nodes {
-		server := goosecoin.NewServer(config)
+		server := network.NewServer(config)
 		go server.Run()
 		servers[i] = server
 	}

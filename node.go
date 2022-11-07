@@ -13,18 +13,18 @@ type Node struct {
 	Blocks   []*Block
 	Messages []Message
 
-	Validators []ed25519.PublicKey
+	network *Network
 }
 
-func NewNode() *Node {
+func NewNode(n *Network) *Node {
 	publicKey, privateKey, err := ed25519.GenerateKey(nil)
 	if err != nil {
 		panic(err)
 	}
-	return NewNodeWithKey(publicKey, privateKey)
+	return NewNodeWithKey(publicKey, privateKey, n)
 }
 
-func NewNodeWithKey(publicKey ed25519.PublicKey, privateKey ed25519.PrivateKey) *Node {
+func NewNodeWithKey(publicKey ed25519.PublicKey, privateKey ed25519.PrivateKey, n *Network) *Node {
 	blocks := make([]*Block, 0)
 	blocks = append(blocks, genesis)
 	return &Node{
@@ -33,6 +33,13 @@ func NewNodeWithKey(publicKey ed25519.PublicKey, privateKey ed25519.PrivateKey) 
 		Head:       genesis,
 		Blocks:     blocks,
 		Messages:   make([]Message, 0),
+		network:    n,
+	}
+}
+
+func (n *Node) Validator() Validator {
+	return Validator{
+		PublicKey: n.PublicKey,
 	}
 }
 
@@ -41,7 +48,7 @@ func (n *Node) VerifyBlock(block *Block) bool {
 		return false
 	}
 
-	if !ed25519.Verify(block.Validator, block.Hash, block.Signature) {
+	if !ed25519.Verify(block.Validator.PublicKey, block.Hash, block.Signature) {
 		return false
 	}
 	return true
@@ -63,7 +70,7 @@ func (n *Node) AddBlock(block *Block) {
 
 func (n *Node) Mine() *Block {
 	block := NewBlock(n.Head, n.Messages)
-	block.Validator = n.PublicKey
+	block.Validator = n.Validator()
 	block.Signature = ed25519.Sign(n.PrivateKey, block.Hash[:])
 	n.AddBlock(block)
 	return block

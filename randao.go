@@ -51,13 +51,13 @@ type Randao struct {
 }
 
 func (s *Server) NewRandao(id string, onFinish func(result []byte)) *Randao {
-	keys := s.Validators
+	keys := s.network.Validators
 	validators := make([][32]byte, len(keys))
 	for i, k := range keys {
-		if len(k) != 32 {
+		if len(k.PublicKey) != 32 {
 			panic("invalid public key")
 		}
-		copy(validators[i][:], k)
+		copy(validators[i][:], k.PublicKey)
 	}
 
 	seed := make([]byte, 32)
