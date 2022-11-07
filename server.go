@@ -63,7 +63,7 @@ func (n *Network) NewServer(config ServerConfig) *Server {
 	})
 
 	r.GET("/message", func(c *gin.Context) {
-		node.AddMessage([]byte(c.Query("data")))
+		node.AddMessage(RawMessage([]byte(c.Query("data"))))
 		c.String(http.StatusOK, "OK")
 	})
 

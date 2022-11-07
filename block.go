@@ -30,7 +30,7 @@ func (block *Block) ComputeHash() Hash {
 	data.Write(block.PrevHash[:])
 	data.Write(Uint64ToBytes(uint64(block.TimeStamp.UnixNano())))
 	for _, message := range block.Data {
-		data.Write(message)
+		data.Write(message.Data())
 	}
 	hash := sha256.Sum256(data.Bytes())
 	return hash[:]

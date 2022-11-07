@@ -47,11 +47,13 @@ func (n *Node) VerifyBlock(block *Block) bool {
 	if !reflect.DeepEqual(block.ComputeHash(), block.Hash) {
 		return false
 	}
-
-	if !ed25519.Verify(block.Validator.PublicKey, block.Hash, block.Signature) {
-		return false
+	for _, m := range block.Data {
+		if !m.Verify() {
+			return false
+		}
 	}
-	return true
+
+	return ed25519.Verify(block.Validator.PublicKey, block.Hash, block.Signature)
 }
 
 func (n *Node) AddMessage(m Message) {

@@ -45,9 +45,10 @@ type Randao struct {
 
 	Status     RandaoStatus
 	Validators [][32]byte
-	Hashs      map[[32]byte][]byte
-	Seeds      map[[32]byte][]byte
-	Result     []byte
+	// TODO: concurrent map
+	Hashs  map[[32]byte][]byte
+	Seeds  map[[32]byte][]byte
+	Result []byte
 }
 
 func (s *Server) NewRandao(id string, onFinish func(result []byte)) *Randao {
