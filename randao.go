@@ -11,6 +11,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"sync"
 )
 
 type HashRequest struct {
@@ -45,9 +46,12 @@ type Randao struct {
 
 	Status     RandaoStatus
 	Validators [][32]byte
-	// TODO: concurrent map
-	Hashs  map[[32]byte][]byte
-	Seeds  map[[32]byte][]byte
+
+	hashLock sync.Mutex
+	Hashs    map[[32]byte][]byte
+	seedLock sync.Mutex
+	Seeds    map[[32]byte][]byte
+
 	Result []byte
 }
 
@@ -153,7 +157,9 @@ func (r *Randao) AddHash(req HashRequest) error {
 	if _, ok := r.Hashs[*v]; ok {
 		return errors.New("hash already exists")
 	}
+	r.hashLock.Lock()
 	r.Hashs[*v] = req.Hash
+	r.hashLock.Unlock()
 	if len(r.Hashs) == len(r.Validators) {
 		r.Status = RandaoStatusSeed
 		go r.SendSeed()
@@ -170,7 +176,9 @@ func (r *Randao) AddSeed(req SeedRequest) error {
 	if _, ok := r.Seeds[*v]; ok {
 		return errors.New("hash already exists")
 	}
+	r.seedLock.Lock()
 	r.Seeds[*v] = req.Seed
+	r.seedLock.Unlock()
 	if len(r.Seeds) == len(r.Validators) {
 		r.Status = RandaoStatusFinished
 		r.Result = r.result()
