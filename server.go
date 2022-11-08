@@ -23,8 +23,8 @@ type ServerConfig struct {
 type Server struct {
 	Config ServerConfig
 	*Node
-	Randaos       map[string]*Randao
-	NextValidator Validator
+	Randaos      map[string]*Randao
+	NextProposer Validator
 
 	r *gin.Engine
 }
@@ -88,12 +88,38 @@ func (n *Network) NewServer(config ServerConfig) *Server {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "randao not finished"})
 			return
 		}
-		if !bytes.Equal(block.Validator.PublicKey, s.NextValidator.PublicKey) {
+		if !bytes.Equal(block.Proposer.PublicKey, s.NextProposer.PublicKey) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid validator"})
 			return
 		}
-
+		block.Attestations = NewAttestations()
 		node.AddBlock(block)
+		for _, peer := range s.Config.Peers {
+			go func(peer string) {
+				signature := ed25519.Sign(s.PrivateKey, block.Hash)
+				req := &Attestation{
+					Validator: Validator{PublicKey: s.PublicKey},
+					BlockHash: block.Hash,
+					Signature: signature,
+				}
+				data, err := json.Marshal(req)
+				if err != nil {
+					panic(err)
+				}
+				_, err = http.Post(peer+"/attestation", "application/json", bytes.NewReader(data))
+				if err != nil {
+					panic(err)
+				}
+			}(peer)
+		}
+		c.String(http.StatusOK, "OK")
+	})
+
+	r.POST("/attestation", func(c *gin.Context) {
+		var req Attestation
+		c.BindJSON(&req)
+		// todo: verify attestation
+		s.Head.Attestations.Add(req)
 		c.String(http.StatusOK, "OK")
 	})
 
@@ -179,7 +205,7 @@ func (s *Server) Mine() {
 func (s *Server) OnRandaoFinish(result []byte) {
 	i := Mod(result, int64(len(s.network.Validators)))
 	log.Println(i)
-	s.NextValidator = s.network.Validators[i]
+	s.NextProposer = s.network.Validators[i]
 	next := RandaoID(s.Head.Height + 2)
 	s.Randaos[next] = s.NewRandao(next, s.OnRandaoFinish)
 	log.Println(next)
@@ -187,7 +213,7 @@ func (s *Server) OnRandaoFinish(result []byte) {
 		time.Sleep(time.Second * 12)
 		s.Randaos[next].SendHash()
 	}()
-	if bytes.Equal(s.NextValidator.PublicKey, s.Config.PublicKey) {
+	if bytes.Equal(s.NextProposer.PublicKey, s.Config.PublicKey) {
 		s.Mine()
 	}
 }

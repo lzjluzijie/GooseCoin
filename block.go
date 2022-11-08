@@ -18,8 +18,10 @@ type Block struct {
 	TimeStamp   time.Time
 	Data        []Message
 
-	Validator Validator
+	Proposer  Validator
 	Signature []byte
+
+	Attestations Attestations `json:"-"`
 
 	prev *Block
 }
@@ -38,12 +40,13 @@ func (block *Block) ComputeHash() Hash {
 
 func NewBlock(prev *Block, data []Message) *Block {
 	block := &Block{
-		Height:      prev.Height + 1,
-		PrevHash:    prev.Hash,
-		TimeStamp:   time.Now(),
-		Data:        data,
-		prev:        prev,
-		HexPrevHash: hex.EncodeToString(prev.Hash[:]),
+		Height:       prev.Height + 1,
+		PrevHash:     prev.Hash,
+		TimeStamp:    time.Now(),
+		Data:         data,
+		prev:         prev,
+		HexPrevHash:  hex.EncodeToString(prev.Hash[:]),
+		Attestations: NewAttestations(),
 	}
 
 	hash := block.ComputeHash()

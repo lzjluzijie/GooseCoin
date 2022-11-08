@@ -53,7 +53,7 @@ func (n *Node) VerifyBlock(block *Block) bool {
 		}
 	}
 
-	return ed25519.Verify(block.Validator.PublicKey, block.Hash, block.Signature)
+	return ed25519.Verify(block.Proposer.PublicKey, block.Hash, block.Signature)
 }
 
 func (n *Node) AddMessage(m Message) {
@@ -72,7 +72,7 @@ func (n *Node) AddBlock(block *Block) {
 
 func (n *Node) Mine() *Block {
 	block := NewBlock(n.Head, n.Messages)
-	block.Validator = n.Validator()
+	block.Proposer = n.Validator()
 	block.Signature = ed25519.Sign(n.PrivateKey, block.Hash[:])
 	n.AddBlock(block)
 	return block
